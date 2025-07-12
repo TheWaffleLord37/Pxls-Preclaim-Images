@@ -29,7 +29,6 @@
       height: auto;
       image-rendering: auto;
       user-select: none;
-      pointer-events: none;
     }
     .filename {
       margin-bottom: 0.5em;
@@ -62,7 +61,6 @@
       display: block;
       image-rendering: pixelated;
       user-select: none;
-      pointer-events: none;
     }
 
   div p {
@@ -121,49 +119,62 @@
       const img = document.createElement('img');
       img.src = `main/${file}`;
       img.alt = file;
+      
+      const link = document.createElement('a');
+      link.href = img.src;
+      link.target = '_blank';
+      link.appendChild(img);
 
       card.appendChild(title);
-      card.appendChild(img);
+      card.appendChild(link);
       gallery.appendChild(card);
 
-      card.addEventListener('click', () => {
-        lightboxImage.src = img.src;
-        lightboxImage.alt = img.alt;
+      link.addEventListener('click', e => {
+        if (
+          e.button === 0 && // left mouse button
+          !e.ctrlKey && !e.shiftKey && !e.metaKey && !e.altKey
+        ) {
+          e.preventDefault();
 
-        lightboxOverlay.style.display = 'block';
-        lightboxContainer.style.display = 'block';
+          lightboxImage.src = img.src;
+          lightboxImage.alt = img.alt;
+          lightboxImage.ondragstart = e => e.preventDefault();
 
-        lightboxImage.onload = () => {
-          const padding = 80; // total padding (40px each side)
+          lightboxOverlay.style.display = 'block';
+          lightboxContainer.style.display = 'block';
 
-          const maxWidth = window.innerWidth - padding;
-          const maxHeight = window.innerHeight - padding;
+          lightboxImage.onload = () => {
+            const padding = 80; // total padding (40px each side)
 
-          const scaleX = maxWidth / lightboxImage.naturalWidth;
-          const scaleY = maxHeight / lightboxImage.naturalHeight;
+            const maxWidth = window.innerWidth - padding;
+            const maxHeight = window.innerHeight - padding;
 
-          let baseScale = Math.min(scaleX, scaleY);
+            const scaleX = maxWidth / lightboxImage.naturalWidth;
+            const scaleY = maxHeight / lightboxImage.naturalHeight;
 
-          const aspectRatio = lightboxImage.naturalWidth / lightboxImage.naturalHeight;
+            let baseScale = Math.min(scaleX, scaleY);
 
-          // If very wide image, slightly reduce base scale
-          if (aspectRatio > 1.6) {
-            baseScale *= 0.75;
-          }
+            const aspectRatio = lightboxImage.naturalWidth / lightboxImage.naturalHeight;
 
-          scale = Math.min(maxScale, Math.max(minScale, baseScale));
+            // If very wide image, slightly reduce base scale
+            if (aspectRatio > 1.6) {
+              baseScale *= 0.75;
+            }
 
-          updateScale();
+            scale = Math.min(maxScale, Math.max(minScale, baseScale));
 
-          const width = lightboxImage.naturalWidth * scale;
-          const height = lightboxImage.naturalHeight * scale;
+            updateScale();
 
-          containerX = (window.innerWidth - width) / 2;
-          containerY = (window.innerHeight - height) / 2;
+            const width = lightboxImage.naturalWidth * scale;
+            const height = lightboxImage.naturalHeight * scale;
 
-          lightboxContainer.style.left = containerX + 'px';
-          lightboxContainer.style.top = containerY + 'px';
-        };
+            containerX = (window.innerWidth - width) / 2;
+            containerY = (window.innerHeight - height) / 2;
+
+            lightboxContainer.style.left = containerX + 'px';
+            lightboxContainer.style.top = containerY + 'px';
+          };
+        }
       });
     });
 
@@ -253,7 +264,6 @@
     }
 
     lightboxOverlay.addEventListener('click', closeLightbox);
-    lightboxImage.addEventListener('click', closeLightbox);
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && lightboxContainer.style.display === 'block') {
