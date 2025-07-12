@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Preclaim Images</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 0 2em 2em 2em; /* top right bottom left */
+      background-color: #f4f4f4;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5em;
+    }
+    .image-card {
+      background: white;
+      padding: 1em;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .image-card img {
+      max-width: 100%;
+      height: auto;
+      image-rendering: auto;
+      user-select: none;
+      pointer-events: none;
+    }
+    .filename {
+      margin-bottom: 0.5em;
+      font-weight: bold;
+      color: #333;
+      user-select: none;
+    }
+
+    #lightboxOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(0,0,0,0.8);
+      display: none;
+      z-index: 9999;
+      cursor: pointer;
+    }
+
+    #lightboxContainer {
+      position: fixed;
+      background: white;
+      display: none;
+      z-index: 10000;
+      user-select: none;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    #lightboxImage {
+      display: block;
+      image-rendering: pixelated;
+      user-select: none;
+      pointer-events: none;
+    }
+
+  div p {
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 1.5em;
+    margin-top: 1.5em;
+}
+  </style>
+</head>
+<body>
+  <div>
+    <p>You can click on any image to enlarge it.<br>Use the scroll wheel and left click to zoom and pan.<br>Click outside an image or press Esc to close it.</p>
+  </div>
+  
+  <div class="gallery" id="gallery"></div>
+
+  <div id="lightboxOverlay"></div>
+  <div id="lightboxContainer">
+    <img id="lightboxImage" src="" alt="" />
+  </div>
+
+  <script>
+    const imageFiles = [
+      "c90.png", "c89.png", "c88.png", "c87.png", "c86.png", "c85.png", "c84.png", "c83.png",
+      "c82.png", "c81.png", "c80.png", "c79.png", "c78.png", "c77.png", "c76.png", "c75.png",
+      "c74.png", "c73.png", "c72.png", "c71.png", "c70.png", "c69.png", "c68.png", "c67.png",
+      "c66.png", "c64.png", "c63.png", "c61.png", "c60.png", "c59.png", "c58.png", "c57.png",
+      "c56.png", "c55.png", "c54.png", "c53.png", "c52.png", "c50.png", "c48.png", "c47.png",
+      "c46.png", "c45.png", "c44.png", "c43.png", "c42.png", "c40.png", "c39.png"
+    ];
+
+    const gallery = document.getElementById('gallery');
+    const lightboxOverlay = document.getElementById('lightboxOverlay');
+    const lightboxContainer = document.getElementById('lightboxContainer');
+    const lightboxImage = document.getElementById('lightboxImage');
+
+    let scale = 1;
+    const minScale = 0.25;
+    const maxScale = 10;
+
+    let isPanning = false;
+    let startX = 0, startY = 0;
+
+    let containerX = window.innerWidth / 2;
+    let containerY = window.innerHeight / 2;
+
+    imageFiles.forEach(file => {
+      const card = document.createElement('div');
+      card.className = 'image-card';
+
+      const title = document.createElement('div');
+      title.className = 'filename';
+      title.textContent = file;
+
+      const img = document.createElement('img');
+      img.src = `main/${file}`;
+      img.alt = file;
+
+      card.appendChild(title);
+      card.appendChild(img);
+      gallery.appendChild(card);
+
+      card.addEventListener('click', () => {
+        lightboxImage.src = img.src;
+        lightboxImage.alt = img.alt;
+
+        lightboxOverlay.style.display = 'block';
+        lightboxContainer.style.display = 'block';
+
+        lightboxImage.onload = () => {
+          const padding = 80; // total padding (40px each side)
+
+          const maxWidth = window.innerWidth - padding;
+          const maxHeight = window.innerHeight - padding;
+
+          const scaleX = maxWidth / lightboxImage.naturalWidth;
+          const scaleY = maxHeight / lightboxImage.naturalHeight;
+
+          let baseScale = Math.min(scaleX, scaleY);
+
+          const aspectRatio = lightboxImage.naturalWidth / lightboxImage.naturalHeight;
+
+          // If very wide image, slightly reduce base scale
+          if (aspectRatio > 1.6) {
+            baseScale *= 0.75;
+          }
+
+          scale = Math.min(maxScale, Math.max(minScale, baseScale));
+
+          updateScale();
+
+          const width = lightboxImage.naturalWidth * scale;
+          const height = lightboxImage.naturalHeight * scale;
+
+          containerX = (window.innerWidth - width) / 2;
+          containerY = (window.innerHeight - height) / 2;
+
+          lightboxContainer.style.left = containerX + 'px';
+          lightboxContainer.style.top = containerY + 'px';
+        };
+      });
+    });
+
+    function updateScale() {
+      const width = lightboxImage.naturalWidth * scale;
+      const height = lightboxImage.naturalHeight * scale;
+      lightboxImage.style.width = width + 'px';
+      lightboxImage.style.height = height + 'px';
+      lightboxContainer.style.width = width + 'px';
+      lightboxContainer.style.height = height + 'px';
+    }
+
+    // Center zoom on mouse
+    lightboxContainer.addEventListener('wheel', e => {
+      e.preventDefault();
+
+      const rect = lightboxContainer.getBoundingClientRect();
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      const zoomInFactor = 1.3;
+      const zoomOutFactor = 1 / zoomInFactor;
+
+      const oldScale = scale;
+      let newScale;
+
+      if (e.deltaY < 0) {
+        newScale = Math.min(maxScale, scale * zoomInFactor);
+      } else {
+        newScale = Math.max(minScale, scale * zoomOutFactor);
+      }
+
+      const scaleRatio = newScale / oldScale;
+
+      const offsetXFromContainer = mouseX - containerX;
+      const offsetYFromContainer = mouseY - containerY;
+
+      containerX -= offsetXFromContainer * (scaleRatio - 1);
+      containerY -= offsetYFromContainer * (scaleRatio - 1);
+
+      scale = newScale;
+
+      updateScale();
+
+      lightboxContainer.style.left = containerX + 'px';
+      lightboxContainer.style.top = containerY + 'px';
+    });
+
+    lightboxContainer.addEventListener('mousedown', (e) => {
+      isPanning = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      lightboxContainer.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      containerX += dx;
+      containerY += dy;
+
+      lightboxContainer.style.left = containerX + 'px';
+      lightboxContainer.style.top = containerY + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      isPanning = false;
+      lightboxContainer.style.cursor = 'grab';
+    });
+
+    function closeLightbox() {
+      lightboxImage.src = '';
+      lightboxImage.alt = '';
+      lightboxContainer.style.display = 'none';
+      lightboxOverlay.style.display = 'none';
+      scale = 1;
+      containerX = window.innerWidth / 2;
+      containerY = window.innerHeight / 2;
+      lightboxContainer.style.left = containerX + 'px';
+      lightboxContainer.style.top = containerY + 'px';
+    }
+
+    lightboxOverlay.addEventListener('click', closeLightbox);
+    lightboxImage.addEventListener('click', closeLightbox);
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && lightboxContainer.style.display === 'block') {
+        closeLightbox();
+      }
+    });
+
+    window.onbeforeunload = () => {
+      window.scrollTo(0, 0);
+    };
+  </script>
+</body>
+</html>
