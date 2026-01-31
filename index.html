@@ -57,6 +57,15 @@
       cursor: grab;
     }
 
+    #lightboxTitle {
+      font-weight: bold;
+      text-align: center;
+      padding: 6px 10px;
+      background: white;
+      border-bottom: 1px solid #ddd;
+      user-select: none;
+    }
+
     #lightboxImage {
       display: block;
       image-rendering: pixelated;
@@ -73,13 +82,14 @@
 </head>
 <body>
   <div>
-    <p>You can click on any image to enlarge it.<br>Use the scroll wheel and left click to zoom and pan.<br>Click outside an image or press Esc to close it.</p>
+    <p>You can click on any image to enlarge it.<br>Use the scroll wheel and left click to zoom and pan.<br>Use A and D or the Left and Right arrow keys to switch between images.<br>Click outside an image or press Esc to close it.</p>
   </div>
   
   <div class="gallery" id="gallery"></div>
 
   <div id="lightboxOverlay"></div>
   <div id="lightboxContainer">
+    <div id="lightboxTitle"></div>
     <img id="lightboxImage" src="" alt="" />
   </div>
 
@@ -92,6 +102,7 @@
     const lightboxOverlay = document.getElementById('lightboxOverlay');
     const lightboxContainer = document.getElementById('lightboxContainer');
     const lightboxImage = document.getElementById('lightboxImage');
+    const lightboxTitle = document.getElementById('lightboxTitle');
 
     let scale = 1;
     const minScale = 0.25;
@@ -103,7 +114,9 @@
     let containerX = window.innerWidth / 2;
     let containerY = window.innerHeight / 2;
 
-    imageFiles.forEach(file => {
+    let currentIndex = -1;
+
+    imageFiles.forEach((file, index) => {
       const card = document.createElement('div');
       card.className = 'image-card';
 
@@ -131,8 +144,12 @@
         ) {
           e.preventDefault();
 
+          currentIndex = index;
+
           lightboxImage.src = img.src;
           lightboxImage.alt = img.alt;
+          lightboxTitle.textContent = file;
+
           lightboxImage.ondragstart = e => e.preventDefault();
 
           lightboxOverlay.style.display = 'block';
@@ -172,6 +189,50 @@
         }
       });
     });
+
+    function openLightboxByIndex(index) {
+      if (index < 0) index = imageFiles.length - 1;
+      if (index >= imageFiles.length) index = 0;
+
+      const file = imageFiles[index];
+      currentIndex = index;
+
+      lightboxImage.src = `main/${file}`;
+      lightboxImage.alt = file;
+      lightboxTitle.textContent = file;
+
+      lightboxImage.ondragstart = e => e.preventDefault();
+
+      lightboxOverlay.style.display = 'block';
+      lightboxContainer.style.display = 'block';
+
+      lightboxImage.onload = () => {
+        const padding = 80;
+
+        const maxWidth = window.innerWidth - padding;
+        const maxHeight = window.innerHeight - padding;
+
+        const scaleX = maxWidth / lightboxImage.naturalWidth;
+        const scaleY = maxHeight / lightboxImage.naturalHeight;
+
+        let baseScale = Math.min(scaleX, scaleY);
+        const aspectRatio = lightboxImage.naturalWidth / lightboxImage.naturalHeight;
+        if (aspectRatio > 1.6) baseScale *= 0.75;
+
+        scale = Math.min(maxScale, Math.max(minScale, baseScale));
+
+        updateScale();
+
+        const width = lightboxImage.naturalWidth * scale;
+        const height = lightboxImage.naturalHeight * scale;
+
+        containerX = (window.innerWidth - width) / 2;
+        containerY = (window.innerHeight - height) / 2;
+
+        lightboxContainer.style.left = containerX + 'px';
+        lightboxContainer.style.top = containerY + 'px';
+      };
+    }
 
     function updateScale() {
       const width = lightboxImage.naturalWidth * scale;
@@ -249,6 +310,8 @@
     function closeLightbox() {
       lightboxImage.src = '';
       lightboxImage.alt = '';
+      lightboxTitle.textContent = '';
+
       lightboxContainer.style.display = 'none';
       lightboxOverlay.style.display = 'none';
       scale = 1;
@@ -256,13 +319,24 @@
       containerY = window.innerHeight / 2;
       lightboxContainer.style.left = containerX + 'px';
       lightboxContainer.style.top = containerY + 'px';
+      currentIndex = -1;
     }
 
     lightboxOverlay.addEventListener('click', closeLightbox);
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && lightboxContainer.style.display === 'block') {
+      if (lightboxContainer.style.display !== 'block') return;
+
+      if (e.key === 'Escape') {
         closeLightbox();
+      }
+
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+        openLightboxByIndex(currentIndex + 1);
+      }
+
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+        openLightboxByIndex(currentIndex - 1);
       }
     });
 
