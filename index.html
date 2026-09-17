@@ -48,6 +48,7 @@
     }
 
     #lightboxContainer {
+      box-sizing: border-box;
       position: fixed;
       background: white;
       display: none;
@@ -159,7 +160,7 @@
             const padding = 80; // total padding (40px each side)
 
             const maxWidth = window.innerWidth - padding;
-            const maxHeight = window.innerHeight - padding;
+            const maxHeight = window.innerHeight - padding - lightboxTitle.offsetHeight;
 
             const scaleX = maxWidth / lightboxImage.naturalWidth;
             const scaleY = maxHeight / lightboxImage.naturalHeight;
@@ -179,9 +180,10 @@
 
             const width = lightboxImage.naturalWidth * scale;
             const height = lightboxImage.naturalHeight * scale;
+            const totalHeight = lightboxTitle.offsetHeight + height;
 
             containerX = (window.innerWidth - width) / 2;
-            containerY = (window.innerHeight - height) / 2;
+            containerY = (window.innerHeight - totalHeight) / 2;
 
             lightboxContainer.style.left = containerX + 'px';
             lightboxContainer.style.top = containerY + 'px';
@@ -240,7 +242,7 @@
       lightboxImage.style.width = width + 'px';
       lightboxImage.style.height = height + 'px';
       lightboxContainer.style.width = width + 'px';
-      lightboxContainer.style.height = height + 'px';
+      lightboxContainer.style.height = (lightboxTitle.offsetHeight + height) + 'px';
     }
 
     // Center zoom on mouse
@@ -267,10 +269,10 @@
       const scaleRatio = newScale / oldScale;
 
       const offsetXFromContainer = mouseX - containerX;
-      const offsetYFromContainer = mouseY - containerY;
+      const offsetYFromImage = mouseY - containerY - lightboxTitle.offsetHeight;
 
       containerX -= offsetXFromContainer * (scaleRatio - 1);
-      containerY -= offsetYFromContainer * (scaleRatio - 1);
+      containerY -= offsetYFromImage * (scaleRatio - 1);
 
       scale = newScale;
 
